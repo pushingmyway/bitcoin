@@ -34,6 +34,7 @@ class CSubNet;
 // between nodes running old code and nodes running
 // new code.
 
+// todo  denial of service prevention
 class BanMan
 {
 public:

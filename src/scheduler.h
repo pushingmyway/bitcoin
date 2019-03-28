@@ -33,7 +33,7 @@
 // delete t;
 // delete s; // Must be done after thread is interrupted/joined.
 //
-
+// 调度器类  一个实现生产者消费者的任务队列
 class CScheduler
 {
 public:
@@ -99,7 +99,7 @@ private:
     CScheduler *m_pscheduler;
 
     CCriticalSection m_cs_callbacks_pending;
-    std::list<std::function<void ()>> m_callbacks_pending GUARDED_BY(m_cs_callbacks_pending);
+    std::list<std::function<void ()>> m_callbacks_pending GUARDED_BY(m_cs_callbacks_pending);  //The GUARDED_BY attribute declares that a thread must lock mu before it can read or write to balance, thus ensuring that the increment and decrement operations are atomic
     bool m_are_callbacks_running GUARDED_BY(m_cs_callbacks_pending) = false;
 
     void MaybeScheduleProcessQueue();
@@ -113,6 +113,8 @@ public:
      * and memory is release-acquire consistent between callback executions.
      * Practically, this means that callbacks can behave as if they are executed
      * in order by a single thread.
+     *
+     * release-acquire ????
      */
     void AddToProcessQueue(std::function<void ()> func);
 

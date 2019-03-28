@@ -612,7 +612,7 @@ void RandAddSeedSleep() { ProcRand(nullptr, 0, RNGLevel::SLEEP); }
 
 bool g_mock_deterministic_tests{false};
 
-uint64_t GetRand(uint64_t nMax) noexcept
+uint64_t GetRand(uint64_t nMax) noexcept  //noexcept 编译器做优化操作
 {
     return FastRandomContext(g_mock_deterministic_tests).randrange(nMax);
 }

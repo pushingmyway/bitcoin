@@ -58,7 +58,7 @@ static CMainSignals g_signals;
 static std::unordered_map<CTxMemPool*, boost::signals2::scoped_connection> g_connNotifyEntryRemoved;
 
 void CMainSignals::RegisterBackgroundSignalScheduler(CScheduler& scheduler) {
-    assert(!m_internals);
+    assert(!m_internals);  // if value == 0  printerr and abort
     m_internals.reset(new MainSignalsInstance(&scheduler));
 }
 
@@ -81,7 +81,7 @@ void CMainSignals::RegisterWithMempoolSignals(CTxMemPool& pool) {
     g_connNotifyEntryRemoved.emplace(std::piecewise_construct,
         std::forward_as_tuple(&pool),
         std::forward_as_tuple(pool.NotifyEntryRemoved.connect(std::bind(&CMainSignals::MempoolEntryRemoved, this, std::placeholders::_1, std::placeholders::_2)))
-    );
+    );  //NotifyEntryRemoved（CTransactionRef, MemPoolRemovalReason） 被调用的时候会回调MempoolEntryRemoved(CTransactionRef ptx, MemPoolRemovalReason reason)函数
 }
 
 void CMainSignals::UnregisterWithMempoolSignals(CTxMemPool& pool) {

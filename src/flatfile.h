@@ -11,6 +11,8 @@
 #include <fs.h>
 #include <serialize.h>
 
+
+//indian 存储文件.dat的pos
 struct FlatFilePos
 {
     int nFile;

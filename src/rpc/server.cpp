@@ -367,7 +367,7 @@ void StartRPC()
 {
     LogPrint(BCLog::RPC, "Starting RPC\n");
     g_rpc_running = true;
-    g_rpcSignals.Started();
+    g_rpcSignals.Started(); //触发slot函数
 }
 
 void InterruptRPC()

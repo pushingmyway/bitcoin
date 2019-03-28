@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <string>
 
-/** Message header.
+/** Message header.  p2p网络中传输的message
  * (4) message start.
  * (12) command.
  * (4) size.
@@ -247,7 +247,7 @@ const std::vector<std::string> &getAllNetMessageTypes();
 enum ServiceFlags : uint64_t {
     // Nothing
     NODE_NONE = 0,
-    // NODE_NETWORK means that the node is capable of serving the complete block chain. It is currently
+    // NODE_NETWORK means that the node is capable of serving the !complete block chain 提供的是block chain !. It is currently
     // set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light clients.
     NODE_NETWORK = (1 << 0),
     // NODE_GETUTXO means the node is capable of responding to the getutxo protocol request.
@@ -357,7 +357,7 @@ public:
     ServiceFlags nServices;
 
     // disk and network only
-    unsigned int nTime;
+    unsigned int nTime;   //indian  时间戳
 };
 
 /** getdata message type flags */

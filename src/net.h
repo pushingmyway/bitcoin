@@ -110,10 +110,33 @@ struct CSerializedNetMsg
 
 
 class NetEventsInterface;
+
+//网络连接管理类，比较庞大，负责节点的启动、结束，推送消息，接收其他节点的连接等。
+/**
+ * 节点发现：
+ * 1.peer.data   服务启动时load到address manager 。第一次启动除外 因为peer.data里没有数据
+ * 2.使用-addnode   -connect  初始化的节点的时间戳是0 getaddr请求不会返回这样的节点
+ * 3.dns seeding 启动的时候才会用 当且仅当peer.data为空的时候才用 同样初始化节点的时间戳是0  硬编码在代码中chainparams.cpp.
+ *  最后的求助 被弃用
+ * 4.通过getaddr 和 addr消息
+ *
+ *   version ack握手成功之后
+ *   新节点发送addr消息 收到addr消息的节点做判断 如果（地址时间戳在10min内 && 包含10个以内地址 && fGetAddr=false）会转发addr消息  如果对方节点是老节点忽略，如果对方节点是新节点并尝试发送超过1000个地址 这个节点会被惩罚，如果是其他的话会更新这个节点的时间戳
+ *   每个节点会每隔24小时发送addr消息广播自己的地址到连接的节点上（线程？）
+ *   响应getaddr消息
+ *
+ *   version ack握手成功之后
+ *   新节点发送getaddr消息 收到getaddr消息后 查找最近三小时内的地址，如果多余2500随机选择2500 清除远端节点已有地址 并响应
+ *
+ * 节点连接
+ *  ThreadOpenConnections线程选择可靠的地址建立连接 断开连接
+ */
 class CConnman
 {
 public:
 
+   //connects to 8 outbound peers (nodes that our node goes out and finds) and
+   // allows up to 125 inbound peers (nodes that find us through the network)
     enum NumConnections {
         CONNECTIONS_NONE = 0,
         CONNECTIONS_IN = (1U << 0),
@@ -151,7 +174,7 @@ public:
         nMaxOutbound = std::min(connOptions.nMaxOutbound, connOptions.nMaxConnections);
         m_use_addrman_outgoing = connOptions.m_use_addrman_outgoing;
         nMaxAddnode = connOptions.nMaxAddnode;
-        nMaxFeeler = connOptions.nMaxFeeler;
+        nMaxFeeler = connOptions.nMaxFeeler; // indian 1
         nBestHeight = connOptions.nBestHeight;
         clientInterface = connOptions.uiInterface;
         m_banman = connOptions.m_banman;
@@ -389,11 +412,11 @@ private:
     std::atomic<bool> fNetworkActive{true};
     bool fAddressesInitialized{false};
     CAddrMan addrman;
-    std::deque<std::string> vOneShots GUARDED_BY(cs_vOneShots);
+    std::deque<std::string> vOneShots GUARDED_BY(cs_vOneShots);  // indian  这里存放的是ip地址
     CCriticalSection cs_vOneShots;
     std::vector<std::string> vAddedNodes GUARDED_BY(cs_vAddedNodes);
     CCriticalSection cs_vAddedNodes;
-    std::vector<CNode*> vNodes GUARDED_BY(cs_vNodes);
+    std::vector<CNode*> vNodes GUARDED_BY(cs_vNodes);  //@indian holds the set of peers
     std::list<CNode*> vNodesDisconnected;
     mutable CCriticalSection cs_vNodes;
     std::atomic<NodeId> nLastNodeId{0};
@@ -467,6 +490,7 @@ struct CombinerAll
 
 /**
  * Interface for message handling
+ * 要是处理从其他节点接收到的消息，发送消息
  */
 class NetEventsInterface
 {
@@ -626,7 +650,7 @@ public:
     size_t nSendSize{0}; // total size of all vSendMsg entries
     size_t nSendOffset{0}; // offset inside the first vSendMsg already sent
     uint64_t nSendBytes GUARDED_BY(cs_vSend){0};
-    std::deque<std::vector<unsigned char>> vSendMsg GUARDED_BY(cs_vSend);
+    std::deque<std::vector<unsigned char>> vSendMsg GUARDED_BY(cs_vSend);  //indian 放到队列中的准备发送给别的peer的消息，已经序列化
     CCriticalSection cs_vSend;
     CCriticalSection cs_hSocket;
     CCriticalSection cs_vRecv;
@@ -657,13 +681,13 @@ public:
     std::string strSubVer GUARDED_BY(cs_SubVer), cleanSubVer GUARDED_BY(cs_SubVer);
     CCriticalSection cs_SubVer; // used for both cleanSubVer and strSubVer
     bool m_prefer_evict{false}; // This peer is preferred for eviction.
-    bool fWhitelisted{false}; // This peer can bypass DoS banning.
+    bool fWhitelisted{false}; // This peer can bypass DoS banning. indian  这个peer不会因为bad行为受到dos惩罚
     bool fFeeler{false}; // If true this node is being used as a short lived feeler.
-    bool fOneShot{false};
+    bool fOneShot{false}; //todo indian ??
     bool m_manual_connection{false};
-    bool fClient{false}; // set by version message
+    bool fClient{false}; // set by version message   Whether this peer is a SPV node
     bool m_limited_node{false}; //after BIP159, set by version message
-    const bool fInbound;
+    const bool fInbound; //indian  用于区别这个node是inbound 还是outbound 常识表示outbound节点攻击我们的概率比inbound节点要小，因为outbound节点使我们主动去找的。所以如果我们请求历史block的时候，倾向于选择outbound节点
     std::atomic_bool fSuccessfullyConnected{false};
     // Setting fDisconnect to true will cause the node to be disconnected the
     // next time DisconnectNodes() runs
@@ -751,7 +775,7 @@ private:
     const ServiceFlags nLocalServices;
     const int nMyStartingHeight;
     int nSendVersion{0};
-    std::list<CNetMessage> vRecvMsg;  // Used only by SocketHandler thread
+    std::list<CNetMessage> vRecvMsg;  // Used only by SocketHandler thread   indian 从别的节点收到的message  会在底层反序列化
 
     mutable CCriticalSection cs_addrName;
     std::string addrName GUARDED_BY(cs_addrName);

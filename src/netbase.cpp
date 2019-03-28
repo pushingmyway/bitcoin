@@ -517,7 +517,7 @@ bool ConnectSocketDirectly(const CService &addrConnect, const SOCKET& hSocket, i
             fd_set fdset;
             FD_ZERO(&fdset);
             FD_SET(hSocket, &fdset);
-            int nRet = select(hSocket + 1, nullptr, &fdset, nullptr, &timeout);
+            int nRet = select(hSocket + 1, nullptr, &fdset, nullptr, &timeout); //todo  select() nio 底层
 #endif
             if (nRet == 0)
             {

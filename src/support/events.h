@@ -27,7 +27,7 @@ MAKE_RAII(evhttp);
 MAKE_RAII(evhttp_request);
 MAKE_RAII(evhttp_connection);
 
-inline raii_event_base obtain_event_base() {
+inline raii_event_base obtain_event_base() {  //todo ??? inline
     auto result = raii_event_base(event_base_new());
     if (!result.get())
         throw std::runtime_error("cannot create event_base");

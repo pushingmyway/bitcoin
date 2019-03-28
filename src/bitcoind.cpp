@@ -60,7 +60,7 @@ static void WaitForShutdown()
 static bool AppInit(int argc, char* argv[])
 {
     InitInterfaces interfaces;
-    interfaces.chain = interfaces::MakeChain();
+    interfaces.chain = interfaces::MakeChain();  //构造一个chain
 
     bool fRet = false;
 
@@ -70,7 +70,7 @@ static bool AppInit(int argc, char* argv[])
     // If Qt is used, parameters/bitcoin.conf are parsed in qt/bitcoin.cpp's main()
     SetupServerArgs();
     std::string error;
-    if (!gArgs.ParseParameters(argc, argv, error)) {
+    if (!gArgs.ParseParameters(argc, argv, error)) {  //命令行提供的参数替换默认参数
         fprintf(stderr, "Error parsing command line arguments: %s\n", error.c_str());
         return false;
     }
@@ -125,7 +125,7 @@ static bool AppInit(int argc, char* argv[])
         // Set this early so that parameter interactions go to console
         InitLogging();
         InitParameterInteraction();
-        if (!AppInitBasicSetup())
+        if (!AppInitBasicSetup()) //初始化网络
         {
             // InitError will have been called with detailed error, which ends up on console
             return false;
@@ -193,10 +193,10 @@ int main(int argc, char* argv[])
     util::WinCmdLineArgs winArgs;
     std::tie(argc, argv) = winArgs.get();
 #endif
-    SetupEnvironment();
+    SetupEnvironment();//功能: 主要设置语言环境
 
     // Connect bitcoind signal handlers
-    noui_connect();
+    noui_connect();//功能: 主要是设置信号处理函数
 
     return (AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);
 }

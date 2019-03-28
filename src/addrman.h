@@ -171,6 +171,13 @@ static const int64_t ADDRMAN_TEST_WINDOW = 40*60; // 40 minutes
 
 /**
  * Stochastical (IP) address manager
+ *
+ *  indian
+ *  地址管理 会保留table在内存中，并且这里有一个异步线程（？）同步到peer.dat中
+ *  地址通过bucket被管理 两个数组
+ *  地址选择通过哈希选择
+ *
+ *  timestamp记录最近一次连接的节点，当timestamp超过20min时候会记录到数据库中
  */
 class CAddrMan
 {
@@ -195,13 +202,13 @@ private:
     int nTried GUARDED_BY(cs);
 
     //! list of "tried" buckets
-    int vvTried[ADDRMAN_TRIED_BUCKET_COUNT][ADDRMAN_BUCKET_SIZE] GUARDED_BY(cs);
+    int vvTried[ADDRMAN_TRIED_BUCKET_COUNT][ADDRMAN_BUCKET_SIZE] GUARDED_BY(cs);  //   [256][64]
 
     //! number of (unique) "new" entries
     int nNew GUARDED_BY(cs);
 
     //! list of "new" buckets
-    int vvNew[ADDRMAN_NEW_BUCKET_COUNT][ADDRMAN_BUCKET_SIZE] GUARDED_BY(cs);
+    int vvNew[ADDRMAN_NEW_BUCKET_COUNT][ADDRMAN_BUCKET_SIZE] GUARDED_BY(cs);  //indian [1024][64]
 
     //! last time Good was called (memory only)
     int64_t nLastGood GUARDED_BY(cs);

@@ -19,7 +19,7 @@ class ChainClient;
 struct InitInterfaces
 {
     std::unique_ptr<interfaces::Chain> chain;
-    std::vector<std::unique_ptr<interfaces::ChainClient>> chain_clients;
+    std::vector<std::unique_ptr<interfaces::ChainClient> > chain_clients;
 };
 
 namespace boost

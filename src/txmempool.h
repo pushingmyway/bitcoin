@@ -463,10 +463,10 @@ public:
         CTxMemPoolEntry,
         boost::multi_index::indexed_by<
             // sorted by txid
-            boost::multi_index::hashed_unique<mempoolentry_txid, SaltedTxidHasher>,
+            boost::multi_index::hashed_unique<mempoolentry_txid, SaltedTxidHasher>, //哈希排序规则 salted????
             // sorted by fee rate
             boost::multi_index::ordered_non_unique<
-                boost::multi_index::tag<descendant_score>,
+                boost::multi_index::tag<descendant_score>,  //只是一个tag定义  表示 get<N>  方便遍历的时候查看
                 boost::multi_index::identity<CTxMemPoolEntry>,
                 CompareTxMemPoolEntryByDescendantScore
             >,
@@ -697,7 +697,7 @@ public:
     size_t DynamicMemoryUsage() const;
 
     boost::signals2::signal<void (CTransactionRef)> NotifyEntryAdded;
-    boost::signals2::signal<void (CTransactionRef, MemPoolRemovalReason)> NotifyEntryRemoved;
+    boost::signals2::signal<void (CTransactionRef, MemPoolRemovalReason)> NotifyEntryRemoved;   //节点被remove的时候的信号
 
 private:
     /** UpdateForDescendants is used by UpdateTransactionsFromBlock to update

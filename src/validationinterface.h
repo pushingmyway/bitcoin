@@ -69,6 +69,7 @@ void SyncWithValidationInterfaceQueue() LOCKS_EXCLUDED(cs_main);
  * the BlockConnected() callback without worrying about explicit
  * synchronization. No ordering should be assumed across
  * ValidationInterface() subscribers.
+ * 主要是通知交易和区块相关的状态的改变
  */
 class CValidationInterface {
 protected:
@@ -155,14 +156,14 @@ protected:
 struct MainSignalsInstance;
 class CMainSignals {
 private:
-    std::unique_ptr<MainSignalsInstance> m_internals;
+    std::unique_ptr<MainSignalsInstance> m_internals;  //这个东西在哪里初始化的？？？ 调用unique_ptr.reset函数
 
     friend void ::RegisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterAllValidationInterfaces();
     friend void ::CallFunctionInValidationInterfaceQueue(std::function<void ()> func);
 
-    void MempoolEntryRemoved(CTransactionRef tx, MemPoolRemovalReason reason);
+    void MempoolEntryRemoved(CTransactionRef tx, MemPoolRemovalReason reason);   // entry被removed的时候的回调函数
 
 public:
     /** Register a CScheduler to give callbacks which should run in the background (may only be called once) */

@@ -63,9 +63,9 @@ public:
 class CTxIn
 {
 public:
-    COutPoint prevout;
-    CScript scriptSig;
-    uint32_t nSequence;
+    COutPoint prevout;//前一笔交易输出
+    CScript scriptSig;//解锁脚本
+    uint32_t nSequence;//序列号
     CScriptWitness scriptWitness; //!< Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction

@@ -1,3 +1,8 @@
+.idea/
+bitcoin.creator.user
+cmake-build-debug/
+src/cmake-build-debug/
+
 *.tar.gz
 
 *.exe
