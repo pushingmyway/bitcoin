@@ -343,11 +343,11 @@ CNode *CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
            pszDest ? 0.0 : (double) (GetAdjustedTime() - addrConnect.nTime) / 3600.0);
 
   // Resolve
-  const int default_port = Params().GetDefaultPort();
+  const int default_port = Params().GetDefaultPort(); //indian 8333
   if (pszDest) {
     std::vector<CService> resolved;
-    if (Lookup(pszDest, resolved, default_port, fNameLookup && !HaveNameProxy(), 256) && !resolved.empty()) {
-      addrConnect = CAddress(resolved[GetRand(resolved.size())], NODE_NONE);
+    if (Lookup(pszDest, resolved, default_port, fNameLookup && !HaveNameProxy(), 256) && !resolved.empty()) {  //Indian 调用getaddrinfo获取可以bind和connection的地址
+      addrConnect = CAddress(resolved[GetRand(resolved.size())], NODE_NONE); //随机取一个地址返回可被bind或者connect对象
       if (!addrConnect.IsValid()) {
         LogPrint(BCLog::NET, "Resolver returned invalid address %s for %s\n", addrConnect.ToString(), pszDest);
         return nullptr;
@@ -357,7 +357,7 @@ CNode *CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
       // Also store the name we used to connect in that CNode, so that future FindNode() calls to that
       // name catch this early.
       LOCK(cs_vNodes);
-      CNode *pnode = FindNode(static_cast<CService>(addrConnect));
+      CNode *pnode = FindNode(static_cast<CService>(addrConnect));  //todo static_cast 看看  如果这个地址对应的cnode已经在vnodes的列表中，返回 进入下一次循环
       if (pnode) {
         pnode->MaybeSetAddrName(std::string(pszDest));
         LogPrintf("Failed to open new connection, already connected\n");
@@ -386,7 +386,7 @@ CNode *CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
       if (hSocket == INVALID_SOCKET) {
         return nullptr;
       }
-      connected = ConnectSocketDirectly(addrConnect, hSocket, nConnectTimeout, manual_connection);
+      connected = ConnectSocketDirectly(addrConnect, hSocket, nConnectTimeout, manual_connection);  //indian
     }
     if (!proxyConnectionFailed) {
       // If a connection to the node was attempted, and failure (if any) is not caused by a problem connecting to
@@ -411,7 +411,7 @@ CNode *CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
   // Add node
   NodeId id = GetNewNodeId();
   uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
-  CAddress addr_bind = GetBindAddress(hSocket);
+  CAddress addr_bind = GetBindAddress(hSocket); //indian 因为ip端口信息是在connect的时候生成的，这里获取
   CNode *pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addrConnect,
                            CalculateKeyedNetGroup(addrConnect), nonce, addr_bind, pszDest ? pszDest : "", false);
   pnode->AddRef();
@@ -667,6 +667,7 @@ size_t CConnman::SocketSendData(CNode *pnode) const EXCLUSIVE_LOCKS_REQUIRED(pno
       LOCK(pnode->cs_hSocket);
       if (pnode->hSocket == INVALID_SOCKET)
         break;
+      //send The send() call may be used only when the socket is in a connected state (so that the intended recipient is known).
       nBytes = send(pnode->hSocket, reinterpret_cast<const char *>(data.data()) + pnode->nSendOffset,
                     data.size() - pnode->nSendOffset, MSG_NOSIGNAL | MSG_DONTWAIT);
     }
@@ -763,6 +764,7 @@ static void EraseLastKElements(std::vector<T> &elements, Comparator comparator, 
  *   for each of several distinct characteristics which are difficult
  *   to forge.  In order to partition a node the attacker must be
  *   simultaneously better at all of them than honest peers.
+ *   indian 节点满了的时候 要淘汰节点
  */
 bool CConnman::AttemptToEvictConnection() {
   std::vector<NodeEvictionCandidate> vEvictionCandidates;
@@ -849,6 +851,16 @@ bool CConnman::AttemptToEvictConnection() {
   return false;
 }
 
+/*
+ * indian
+ * accept操作
+ * 从listen socket的pedding连接队列中取出第一个连接
+ * 创建一个新的connected socket并返回一个新的文件描述符
+ * 原始的socket不会受影响
+ * accept会block知道一个请求过来 如果队列中没有请求 并且这个socket没有被标记为nonblocking
+ * 如果这个socket没有被标记为nonblocking 并且队列中没有任何连接，那么会调用失败
+ *
+ * */
 void CConnman::AcceptConnection(const ListenSocket &hListenSocket) {
   struct sockaddr_storage sockaddr;
   socklen_t len = sizeof(sockaddr);
@@ -914,21 +926,21 @@ void CConnman::AcceptConnection(const ListenSocket &hListenSocket) {
   }
 
   NodeId id = GetNewNodeId();
-  uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
-  CAddress addr_bind = GetBindAddress(hSocket);
+  uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();  //todo nonce是个啥
+  CAddress addr_bind = GetBindAddress(hSocket); //returns the current address to which the socket sockfd is bound, in the buffer pointed to by addr
 
   CNode *pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addr, CalculateKeyedNetGroup(addr), nonce,
                            addr_bind, "", true);
   pnode->AddRef();
   pnode->fWhitelisted = whitelisted;
   pnode->m_prefer_evict = bannedlevel > 0;
-  m_msgproc->InitializeNode(pnode);
+  m_msgproc->InitializeNode(pnode);  //indian 每次新建一个socket连接 都会生成一个cnode 然后会先做ack操作
 
   LogPrint(BCLog::NET, "connection from %s accepted\n", addr.ToString());
 
   {
     LOCK(cs_vNodes);
-    vNodes.push_back(pnode);
+    vNodes.push_back(pnode); //indian inbound and outbound node都会放到vNodes中维护
   }
 }
 
@@ -936,7 +948,7 @@ void CConnman::DisconnectNodes() {
   {
     LOCK(cs_vNodes);
 
-    if (!fNetworkActive) {
+    if (!fNetworkActive) {  //网络不可用断掉所有连接
       // Disconnect any connected nodes
       for (CNode *pnode : vNodes) {
         if (!pnode->fDisconnect) {
@@ -1187,7 +1199,10 @@ void CConnman::SocketEvents(std::set<SOCKET> &recv_set, std::set<SOCKET> &send_s
 }
 
 #endif
-
+/*
+ * SocketHandler() 在一个循环中
+ * 1.每次选择出 接收 发送相关的socket
+ * */
 void CConnman::SocketHandler() {
   std::set<SOCKET> recv_set, send_set, error_set;
   SocketEvents(recv_set, send_set, error_set);
@@ -1197,7 +1212,7 @@ void CConnman::SocketHandler() {
   //
   // Accept new connections
   //
-  for (const ListenSocket &hListenSocket : vhListenSocket) {
+  for (const ListenSocket &hListenSocket : vhListenSocket) {  //indian 感觉只有一个
     if (hListenSocket.socket != INVALID_SOCKET && recv_set.count(hListenSocket.socket) > 0) {
       AcceptConnection(hListenSocket);
     }
@@ -1299,10 +1314,10 @@ void CConnman::SocketHandler() {
   }
 }
 
-void CConnman::ThreadSocketHandler() {
+void CConnman::ThreadSocketHandler() {  // indian inbound connection up to 125   可以理解为作为服务端最多接收多少个链接
   while (!interruptNet) {
     DisconnectNodes();
-    NotifyNumConnectionsChanged();
+    NotifyNumConnectionsChanged();  //indian ui操作
     SocketHandler();
   }
 }
@@ -1440,7 +1455,7 @@ void StopMapPort() {
 #endif
 
 
-void CConnman::ThreadDNSAddressSeed() { //ndian 这个后台线程只是用来加载dns seed 没有while循环
+void CConnman::ThreadDNSAddressSeed() { //indian 这个后台线程只是用来加载dns seed 没有while循环  往双端队列vOneShots中添加seeds就完事
   // goal: only query DNS seeds if address need is acute
   // Avoiding DNS seeds when we don't need them improves user privacy by
   //  creating fewer identifying DNS requests, reduces trust by giving seeds
@@ -1519,15 +1534,15 @@ void CConnman::ProcessOneShot() {
   std::string strDest;
   {
     LOCK(cs_vOneShots);
-    if (vOneShots.empty())
+    if (vOneShots.empty())   //indian 从vOneShots数据结构中取一个地址，这个数据结构添加节点都是什么时候添加的
       return;
     strDest = vOneShots.front();
     vOneShots.pop_front();
   }
   CAddress addr;
-  CSemaphoreGrant grant(*semOutbound, true);
+  CSemaphoreGrant grant(*semOutbound, true); //todo  学会信号量使用 在循环中使用信号量，如果当前连接已经大于9个那么就等在那里，已被授权的信号量传给cnode节点 当节点断开的时候进行信号量的释放
   if (grant) {
-    OpenNetworkConnection(addr, false, &grant, strDest.c_str(), true);
+    OpenNetworkConnection(addr, false, &grant, strDest.c_str(), true);  //indian  取出一个地址目标地址strDest去建立一个连接  加入到vNodes中
   }
 }
 
@@ -1560,6 +1575,17 @@ int CConnman::GetExtraOutboundCount() {
   return std::max(nOutbound - nMaxOutbound, 0);
 }
 
+/**
+ * indian
+ * outbound connections  有点类似作为客户端去连接别的peer
+ * 大体流程如下
+ * getaddrinfo(destStr) 获取可以后续用来connect或者bind的addrinfo
+ * 新建一个socket 这个socket的famliy要跟destStr对应的一直
+ * connect连接socket跟peer地址，
+ * select或者poll 监控一组文件描述符，等在那里直到其中一个或者多个文件描述符ready 文件描述符ready指的是可以做io操作了
+ *
+ * @param connect
+ */
 void CConnman::ThreadOpenConnections(const std::vector<std::string> connect) {
   // Connect to specific addresses
   if (!connect.empty()) {
@@ -1584,12 +1610,12 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect) {
   // Minimum time before next feeler connection (in microseconds).
   int64_t nNextFeeler = PoissonNextSend(nStart * 1000 * 1000, FEELER_INTERVAL);
   while (!interruptNet) {
-    ProcessOneShot();
+    ProcessOneShot();  //indian
 
     if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
       return;
 
-    CSemaphoreGrant grant(*semOutbound);
+    CSemaphoreGrant grant(*semOutbound); //indian  will wait until there is a connection available.  在循环中
     if (interruptNet)
       return;
 
@@ -1622,6 +1648,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect) {
           // but inbound and addnode peers do not use our outbound slots.  Inbound peers
           // also have the added issue that they're attacker controlled and could be used
           // to prevent us from connecting to particular hosts if we used them here.
+          //inbound peer可能会被攻击者控制，阻止我们连接特定的节点
           setConnected.insert(pnode->addr.GetGroup());
           nOutbound++;
         }
@@ -1820,12 +1847,12 @@ void CConnman::OpenNetworkConnection(const CAddress &addrConnect, bool fCountFai
   } else if (FindNode(std::string(pszDest)))
     return;
 
-  CNode *pnode = ConnectNode(addrConnect, pszDest, fCountFailure, manual_connection);
+  CNode *pnode = ConnectNode(addrConnect, pszDest, fCountFailure, manual_connection);//indian  内部
 
   if (!pnode)
     return;
   if (grantOutbound)
-    grantOutbound->MoveTo(pnode->grantOutbound);
+    grantOutbound->MoveTo(pnode->grantOutbound);  //转移信号量管理
   if (fOneShot)
     pnode->fOneShot = true;
   if (fFeeler)
@@ -1836,7 +1863,7 @@ void CConnman::OpenNetworkConnection(const CAddress &addrConnect, bool fCountFai
   m_msgproc->InitializeNode(pnode);
   {
     LOCK(cs_vNodes);
-    vNodes.push_back(pnode);
+    vNodes.push_back(pnode);  //indian 加入到vNodes中
   }
 }
 
@@ -1888,14 +1915,14 @@ void CConnman::ThreadMessageHandler() {
 }
 
 
-bool CConnman::BindListenPort(const CService &addrBind, std::string &strError, bool fWhitelisted) {
+bool CConnman::BindListenPort(const CService &addrBind, std::string &strError, bool fWhitelisted) {  //indian 绑定本机socket
   strError = "";
   int nOne = 1;
 
   // Create socket for listening for incoming connections
   struct sockaddr_storage sockaddr;
   socklen_t len = sizeof(sockaddr);
-  if (!addrBind.GetSockAddr((struct sockaddr *) &sockaddr, &len)) {
+  if (!addrBind.GetSockAddr((struct sockaddr *) &sockaddr, &len)) {  //获取socketaddr family
     strError = strprintf("Error: Bind address family for %s not supported", addrBind.ToString());
     LogPrintf("%s\n", strError);
     return false;
@@ -1911,7 +1938,7 @@ bool CConnman::BindListenPort(const CService &addrBind, std::string &strError, b
 
   // Allow binding if the port is still in TIME_WAIT state after
   // the program was closed and restarted.
-  setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (sockopt_arg_type) &nOne, sizeof(int));
+  setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (sockopt_arg_type) &nOne, sizeof(int)); //indian 设置端口resuseaddr
 
   // some systems don't have IPV6_V6ONLY but are always v6only; others do have the option
   // and enable it by default or not. Try to enable it, if possible.
@@ -1940,7 +1967,8 @@ bool CConnman::BindListenPort(const CService &addrBind, std::string &strError, b
   LogPrintf("Bound to %s\n", addrBind.ToString());
 
   // Listen for incoming connections
-  if (listen(hListenSocket, SOMAXCONN) == SOCKET_ERROR) {
+  // indian 表明该文件描述符可以用来接收连接请求通过accept()函数  队列最大长度 超过会返回econnrefused
+  if (listen(hListenSocket, SOMAXCONN) == SOCKET_ERROR) {  //indian listen
     strError = strprintf(_("Error: Listening for incoming connections failed (listen returned error %s)"),
                          NetworkErrorString(WSAGetLastError()));
     LogPrintf("%s\n", strError);
@@ -2043,6 +2071,17 @@ bool CConnman::Bind(const CService &addr, unsigned int flags) {
   return true;
 }
 
+/**
+ * 绑定本机8333端口并开启listen模式
+ * socket()创建socket
+ * 设置socket SO_REUSEADDR
+ * bind() socket与sockaddr进行绑定
+ *
+ *
+ * @param binds
+ * @param whiteBinds
+ * @return
+ */
 bool CConnman::InitBinds(const std::vector<CService> &binds, const std::vector<CService> &whiteBinds) {
   bool fBound = false;
   for (const auto &addrBind : binds) {
@@ -2051,7 +2090,7 @@ bool CConnman::InitBinds(const std::vector<CService> &binds, const std::vector<C
   for (const auto &addrBind : whiteBinds) {
     fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR | BF_WHITELIST));
   }
-  if (binds.empty() && whiteBinds.empty()) {
+  if (binds.empty() && whiteBinds.empty()) {  //indian size=0
     struct in_addr inaddr_any;
     inaddr_any.s_addr = INADDR_ANY;
     struct in6_addr inaddr6_any = IN6ADDR_ANY_INIT;
@@ -2075,7 +2114,7 @@ bool CConnman::Start(CScheduler &scheduler, const Options &connOptions) {
     nMaxOutboundCycleStartTime = 0;
   }
 
-  if (fListen && !InitBinds(connOptions.vBinds, connOptions.vWhiteBinds)) {
+  if (fListen && !InitBinds(connOptions.vBinds, connOptions.vWhiteBinds)) {  //indian initbind开始
     if (clientInterface) {
       clientInterface->ThreadSafeMessageBox(
         _("Failed to listen on any port. Use -listen=0 if you want this."),
@@ -2142,7 +2181,7 @@ bool CConnman::Start(CScheduler &scheduler, const Options &connOptions) {
 
   // Initiate outbound connections from -addnode
   threadOpenAddedConnections = std::thread(&TraceThread<std::function<void()> >, "addcon", std::function<void()>(
-    std::bind(&CConnman::ThreadOpenAddedConnections, this)));
+    std::bind(&CConnman::ThreadOpenAddedConnections, this)));  //indian 先忽略 开启特定连接 与下边的代码逻辑类似
 
   if (connOptions.m_use_addrman_outgoing && !connOptions.m_specified_outgoing.empty()) {
     if (clientInterface) {
@@ -2491,7 +2530,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     nLocalHostNonce(nLocalHostNonceIn),
     nLocalServices(nLocalServicesIn),
     nMyStartingHeight(nMyStartingHeightIn) {
-  hSocket = hSocketIn;
+  hSocket = hSocketIn;  //hsocket就是建立的连接
   addrName = addrNameIn == "" ? addr.ToStringIPPort() : addrNameIn;
   strSubVer = "";
   hashContinue = uint256();

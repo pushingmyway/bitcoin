@@ -536,8 +536,8 @@ bool CService::GetSockAddr(struct sockaddr* paddr, socklen_t *addrlen) const
         memset(paddrin, 0, *addrlen);
         if (!GetInAddr(&paddrin->sin_addr))
             return false;
-        paddrin->sin_family = AF_INET;
-        paddrin->sin_port = htons(port);
+        paddrin->sin_family = AF_INET;  //设置family
+        paddrin->sin_port = htons(port); //设置端口
         return true;
     }
     if (IsIPv6()) {

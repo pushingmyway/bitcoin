@@ -128,8 +128,9 @@ class NetEventsInterface;
  *   version ack握手成功之后
  *   新节点发送getaddr消息 收到getaddr消息后 查找最近三小时内的地址，如果多余2500随机选择2500 清除远端节点已有地址 并响应
  *
- * 节点连接
+ * 节点连接:
  *  ThreadOpenConnections线程选择可靠的地址建立连接 断开连接
+ *  使用信号量管理outbound连接 最多9个
  */
 class CConnman
 {
@@ -408,15 +409,15 @@ private:
     unsigned int nSendBufferMaxSize{0};
     unsigned int nReceiveFloodSize{0};
 
-    std::vector<ListenSocket> vhListenSocket;
+    std::vector<ListenSocket> vhListenSocket;  //listensocket连接
     std::atomic<bool> fNetworkActive{true};
     bool fAddressesInitialized{false};
     CAddrMan addrman;
-    std::deque<std::string> vOneShots GUARDED_BY(cs_vOneShots);  // indian  这里存放的是ip地址
+    std::deque<std::string> vOneShots GUARDED_BY(cs_vOneShots);  // indian  这里存放的是ip地址 节点发现取得的ip放到这里
     CCriticalSection cs_vOneShots;
     std::vector<std::string> vAddedNodes GUARDED_BY(cs_vAddedNodes);
     CCriticalSection cs_vAddedNodes;
-    std::vector<CNode*> vNodes GUARDED_BY(cs_vNodes);  //@indian holds the set of peers
+    std::vector<CNode*> vNodes GUARDED_BY(cs_vNodes);  //@indian holds the set of peers   打开的连接当道vNodes中
     std::list<CNode*> vNodesDisconnected;
     mutable CCriticalSection cs_vNodes;
     std::atomic<NodeId> nLastNodeId{0};

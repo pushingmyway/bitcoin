@@ -11,7 +11,7 @@ CThreadInterrupt::CThreadInterrupt() : flag(false) {}
 
 CThreadInterrupt::operator bool() const
 {
-    return flag.load(std::memory_order_acquire);
+    return flag.load(std::memory_order_acquire); //todo indian  看看
 }
 
 void CThreadInterrupt::reset()
@@ -23,7 +23,7 @@ void CThreadInterrupt::operator()()
 {
     {
         LOCK(mut);
-        flag.store(true, std::memory_order_release);
+        flag.store(true, std::memory_order_release);//todo indian  看看
     }
     cond.notify_all();
 }
@@ -31,7 +31,7 @@ void CThreadInterrupt::operator()()
 bool CThreadInterrupt::sleep_for(std::chrono::milliseconds rel_time)
 {
     WAIT_LOCK(mut, lock);
-    return !cond.wait_for(lock, rel_time, [this]() { return flag.load(std::memory_order_acquire); });
+    return !cond.wait_for(lock, rel_time, [this]() { return flag.load(std::memory_order_acquire); });  //todo 看看
 }
 
 bool CThreadInterrupt::sleep_for(std::chrono::seconds rel_time)

@@ -43,7 +43,7 @@ CCoinsMap::iterator CCoinsViewCache::FetchCoin(const COutPoint &outpoint) const 
     if (it != cacheCoins.end())
         return it;
     Coin tmp;
-    if (!base->GetCoin(outpoint, tmp))
+    if (!base->GetCoin(outpoint, tmp))  //indian 这里的base指的是上一级的cache,直到数据库
         return cacheCoins.end();
     CCoinsMap::iterator ret = cacheCoins.emplace(std::piecewise_construct, std::forward_as_tuple(outpoint), std::forward_as_tuple(std::move(tmp))).first;
     if (ret->second.coin.IsSpent()) {

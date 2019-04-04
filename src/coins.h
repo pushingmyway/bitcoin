@@ -142,6 +142,7 @@ private:
 };
 
 /** Abstract view on the open txout dataset. */
+//indian  state of coins database utxo
 class CCoinsView
 {
 public:
@@ -198,6 +199,9 @@ public:
 
 
 /** CCoinsView that adds a memory cache for transactions to another CCoinsView */
+/*
+ *
+ * */
 class CCoinsViewCache : public CCoinsViewBacked
 {
 protected:

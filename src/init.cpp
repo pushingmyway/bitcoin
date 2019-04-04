@@ -1513,7 +1513,7 @@ bool AppInitMain(InitInterfaces &interfaces) {
 
   peerLogic.reset(new PeerLogicValidation(g_connman.get(), g_banman.get(), scheduler,
                                           gArgs.GetBoolArg("-enablebip61", DEFAULT_ENABLE_BIP61)));
-  RegisterValidationInterface(peerLogic.get());
+  RegisterValidationInterface(peerLogic.get());//todo indian  ??
 
   // sanitize comments per BIP-0014, format user agent and check total size
   std::vector<std::string> uacomments;
@@ -1710,7 +1710,7 @@ bool AppInitMain(InitInterfaces &interfaces) {
         // At this point we're either in reindex or we've loaded a useful
         // block tree into mapBlockIndex!
 
-        pcoinsdbview.reset(new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState));
+        pcoinsdbview.reset(new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState)); //indian Loading the UTXO set
         pcoinscatcher.reset(new CCoinsViewErrorCatcher(pcoinsdbview.get()));
 
         // If necessary, upgrade from older database format.
@@ -1726,6 +1726,7 @@ bool AppInitMain(InitInterfaces &interfaces) {
           break;
         }
 
+        //indian initalizes pCoinsTip, which is the cache representing the state of the active chain, and is backed by the database view.
         // The on-disk coinsdb is now in a good state, create the cache
         pcoinsTip.reset(new CCoinsViewCache(pcoinscatcher.get()));
 
@@ -1977,7 +1978,7 @@ bool AppInitMain(InitInterfaces &interfaces) {
   // Initiate outbound connections unless connect=0
   connOptions.m_use_addrman_outgoing = !gArgs.IsArgSet("-connect");  //indian !false 即为 true
   if (!connOptions.m_use_addrman_outgoing) {
-    const auto connect = gArgs.GetArgs("-connect");
+    const auto connect = gArgs.GetArgs("-connect");  //indian 不使用地址管理outgoing的话 就连接特定的outgoing
     if (connect.size() != 1 || connect[0] != "0") {
       connOptions.m_specified_outgoing = connect;
     }

@@ -270,7 +270,7 @@ namespace {
     std::multimap<CBlockIndex*, CBlockIndex*>& mapBlocksUnlinked = g_chainstate.mapBlocksUnlinked;
 
     CCriticalSection cs_LastBlockFile;
-    std::vector<CBlockFileInfo> vinfoBlockFile;
+    std::vector<CBlockFileInfo> vinfoBlockFile;  //indian
     int nLastBlockFile = 0;
     /** Global flag to indicate we should check to see if there are
      *  block/undo files that should be deleted.  Set on startup
@@ -305,8 +305,10 @@ CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& loc
 }
 
 std::unique_ptr<CCoinsViewDB> pcoinsdbview;
-std::unique_ptr<CCoinsViewCache> pcoinsTip;
-std::unique_ptr<CBlockTreeDB> pblocktree;
+
+//Holds the UTXO set corresponding to the active chain's tip. Retrieves/flushes to the database view.
+std::unique_ptr<CCoinsViewCache> pcoinsTip;  //indian blockchain cache
+std::unique_ptr<CBlockTreeDB> pblocktree;  // Indian 数据访问层 各种k v索引
 
 enum class FlushStateMode {
     NONE,
@@ -1473,7 +1475,7 @@ bool UndoWriteToDisk(const CBlockUndo& blockundo, FlatFilePos& pos, const uint25
     if (fileOutPos < 0)
         return error("%s: ftell failed", __func__);
     pos.nPos = (unsigned int)fileOutPos;
-    fileout << blockundo;
+    fileout << blockundo;  // The undo data is written to the raw file    The undo data is used when disconnecting a block.
 
     // calculate & write checksum
     CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
@@ -3457,6 +3459,9 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
     return blockPos;
 }
 
+/**
+ * indian
+ * */
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
 bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const FlatFilePos* dbp, bool* fNewBlock)
 {

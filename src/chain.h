@@ -37,6 +37,7 @@ static constexpr int64_t TIMESTAMP_WINDOW = MAX_FUTURE_BLOCK_TIME;
  */
 static constexpr int64_t MAX_BLOCK_TIME_GAP = 90 * 60;
 
+//indian file information record  文件本身的大体信息
 class CBlockFileInfo
 {
 public:
@@ -135,6 +136,7 @@ enum BlockStatus: uint32_t {
  * genesis block at the root, with each block potentially having multiple
  * candidates to be the next block. A blockindex may have multiple pprev pointing
  * to it, but at most one of them can be part of the currently active branch.
+ * indian  block index record  找到磁盘上一个特定块的信息
  */
 class CBlockIndex
 {

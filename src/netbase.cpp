@@ -82,7 +82,7 @@ bool static LookupIntern(const char *pszName, std::vector<CNetAddr>& vIP, unsign
     aiHint.ai_family = AF_UNSPEC;
     aiHint.ai_flags = fAllowLookup ? AI_ADDRCONFIG : AI_NUMERICHOST;
     struct addrinfo *aiRes = nullptr;
-    int nErr = getaddrinfo(pszName, nullptr, &aiHint, &aiRes);
+    int nErr = getaddrinfo(pszName, nullptr, &aiHint, &aiRes);  //indian   returns one or more addrinfo structures, each of which contains an Internet address that can be specified in a call to bind(2) or connect(2)
     if (nErr)
         return false;
 
@@ -443,6 +443,12 @@ static bool Socks5(const std::string& strDest, int port, const ProxyCredentials 
     return true;
 }
 
+/**
+ *   根据family跟tcp协议创建socket
+ *   设置socket为nonblocking模式
+ * @param addrConnect
+ * @return
+ */
 SOCKET CreateSocket(const CService &addrConnect)
 {
     struct sockaddr_storage sockaddr;
@@ -452,7 +458,14 @@ SOCKET CreateSocket(const CService &addrConnect)
         return INVALID_SOCKET;
     }
 
-    SOCKET hSocket = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);
+    /*
+     * indian
+     *  socket() creates an endpoint for communication and returns a file
+       descriptor that refers to that endpoint.  The file descriptor
+       returned by a successful call will be the lowest-numbered file
+       descriptor not currently open for the process
+     */
+    SOCKET hSocket = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);  //indian  建立socket tcp连接
     if (hSocket == INVALID_SOCKET)
         return INVALID_SOCKET;
 
@@ -472,7 +485,7 @@ SOCKET CreateSocket(const CService &addrConnect)
     SetSocketNoDelay(hSocket);
 
     // Set to non-blocking
-    if (!SetSocketNonBlocking(hSocket, true)) {
+    if (!SetSocketNonBlocking(hSocket, true)) {  //indian 开启的socket设置为nonblocking
         CloseSocket(hSocket);
         LogPrintf("ConnectSocketDirectly: Setting socket to non-blocking failed, error %s\n", NetworkErrorString(WSAGetLastError()));
     }
@@ -501,7 +514,15 @@ bool ConnectSocketDirectly(const CService &addrConnect, const SOCKET& hSocket, i
         LogPrintf("Cannot connect to %s: unsupported network\n", addrConnect.ToString());
         return false;
     }
-    if (connect(hSocket, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR)
+    /*
+     * indian
+     * If the socket has not already been bound to a local address, connect() shall bind it to an address which,
+     * unless the socket's address family is AF_UNIX, is an unused local address.
+     *
+     * When the connection has been established asynchronously, select() and poll()
+     * shall indicate that the file descriptor for the socket is ready for writing.
+     * */
+    if (connect(hSocket, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR) //indian  建立连接
     {
         int nErr = WSAGetLastError();
         // WSAEINVAL is here because some legacy version of winsock uses it
@@ -511,13 +532,48 @@ bool ConnectSocketDirectly(const CService &addrConnect, const SOCKET& hSocket, i
             struct pollfd pollfd = {};
             pollfd.fd = hSocket;
             pollfd.events = POLLIN | POLLOUT;
-            int nRet = poll(&pollfd, 1, nTimeout);
+            int nRet = poll(&pollfd, 1, nTimeout);  //event
 #else
             struct timeval timeout = MillisToTimeval(nTimeout);
             fd_set fdset;
             FD_ZERO(&fdset);
             FD_SET(hSocket, &fdset);
-            int nRet = select(hSocket + 1, nullptr, &fdset, nullptr, &timeout); //todo  select() nio 底层
+            /*
+             *
+             * select() and pselect() allow a program to monitor multiple file
+       descriptors, waiting until one or more of the file descriptors become
+       "ready" for some class of I/O operation (e.g., input possible).  A
+       file descriptor is considered ready if it is possible to perform a
+       corresponding I/O operation
+
+             Three independent sets of file descriptors are watched.  The file
+       descriptors listed in readfds will be watched to see if characters
+       become available for reading (more precisely, to see if a read will
+       not block; in particular, a file descriptor is also ready on end-of-
+       file).  The file descriptors in writefds will be watched to see if
+       space is available for write (though a large write may still block).
+       The file descriptors in exceptfds will be watched for exceptional
+       conditions.
+
+              The timeout argument specifies the interval that select() should
+       block waiting for a file descriptor to become ready.  The call will
+       block until either:
+
+       *  a file descriptor becomes ready;
+
+       *  the call is interrupted by a signal handler; or
+
+       *  the timeout expires.
+             *
+             *  On success, select() and pselect() return the number of file
+       descriptors contained in the three returned descriptor sets (that is,
+       the total number of bits that are set in readfds, writefds,
+       exceptfds) which may be zero if the timeout expires before anything
+       interesting happens.  On error, -1 is returned, and errno is set to
+       indicate the error; the file descriptor sets are unmodified, and
+       timeout becomes undefined.
+             */
+            int nRet = select(hSocket + 1, nullptr, &fdset, nullptr, &timeout); //todo indian  select() nio 底层
 #endif
             if (nRet == 0)
             {
@@ -705,7 +761,7 @@ bool CloseSocket(SOCKET& hSocket)
 #ifdef WIN32
     int ret = closesocket(hSocket);
 #else
-    int ret = close(hSocket);
+    int ret = close(hSocket);  //indian  关闭socket
 #endif
     if (ret) {
         LogPrintf("Socket close failed: %d. Error: %s\n", hSocket, NetworkErrorString(WSAGetLastError()));

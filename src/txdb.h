@@ -41,6 +41,11 @@ static const int64_t nMaxTxIndexCache = 1024;
 static const int64_t nMaxCoinsDBCache = 8;
 
 /** CCoinsView backed by the coin database (chainstate/) */
+
+/* indian utxo 数据库（chain state的）视图
+ * Represents the UTXO set according to the /chainstate LevelDB.
+ * Retrieves coins and flushes changes to the LevelDB.
+ */
 class CCoinsViewDB final : public CCoinsView
 {
 protected:
@@ -82,6 +87,15 @@ private:
     friend class CCoinsViewDB;
 };
 
+/**
+ * indian block index leveldb
+ *
+ * 这个结构是一个树形结构，存储的是索引
+ * b
+ * f
+ * ....等kv结构
+ * 不同的节点可能有轻微的不同，但是对主链都达成一致
+ */
 /** Access to the block database (blocks/index/) */
 class CBlockTreeDB : public CDBWrapper
 {
@@ -95,7 +109,7 @@ public:
     void ReadReindexing(bool &fReindexing);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
-    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
+    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);  //indian 服务启动会加载到内存中
 };
 
 #endif // BITCOIN_TXDB_H

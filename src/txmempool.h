@@ -749,6 +749,8 @@ private:
  * It also allows you to sign a double-spend directly in
  * signrawtransactionwithkey and signrawtransactionwithwallet,
  * as long as the conflicting transaction is not yet confirmed.
+ *
+ * indian
  */
 class CCoinsViewMemPool : public CCoinsViewBacked
 {

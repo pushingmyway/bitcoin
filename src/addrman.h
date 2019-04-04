@@ -173,7 +173,7 @@ static const int64_t ADDRMAN_TEST_WINDOW = 40*60; // 40 minutes
  * Stochastical (IP) address manager
  *
  *  indian
- *  地址管理 会保留table在内存中，并且这里有一个异步线程（？）同步到peer.dat中
+ *  地址管理 会保留table在内存中，并且这里有一个异步线程（？）同步到peer.dat中  全局变量
  *  地址通过bucket被管理 两个数组
  *  地址选择通过哈希选择
  *

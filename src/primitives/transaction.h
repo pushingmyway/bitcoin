@@ -37,7 +37,7 @@ public:
     void SetNull() { hash.SetNull(); n = NULL_INDEX; }
     bool IsNull() const { return (hash.IsNull() && n == NULL_INDEX); }
 
-    friend bool operator<(const COutPoint& a, const COutPoint& b)
+    friend bool operator<(const COutPoint& a, const COutPoint& b)  //todo see friend
     {
         int cmp = a.hash.Compare(b.hash);
         return cmp < 0 || (cmp == 0 && a.n < b.n);

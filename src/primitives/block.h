@@ -16,6 +16,8 @@
  * to everyone and the block is added to the block chain.  The first transaction
  * in the block is a special one that creates a new coin owned by the creator
  * of the block.
+ *
+ * indian 区块头的信息
  */
 class CBlockHeader
 {
